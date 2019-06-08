@@ -133,6 +133,15 @@ const sortQueryLists = (queryLists, sort) => {
     .map(e => queryLists[e.index]);
 };
 
+function unpackRules(parent)
+{
+  parent.each((rule) => {
+    rule.moveBefore(parent);
+  });
+
+  parent.remove();
+}
+
 module.exports = postcss.plugin(pkg.name, options => {
   const opts = {
     sort: false,
@@ -227,13 +236,19 @@ module.exports = postcss.plugin(pkg.name, options => {
       // replace '@mqpack' nodes with their contents
       if (group.type == 'mqpack')
       {
-        group.node.each((rule) => {
-          rule.moveBefore(group.node);
-        });
+        unpackRules(group.node);
+        // group.node.each((rule) => {
+        //   rule.moveBefore(group.node);
+        // });
 
-        group.node.remove();
+        // group.node.remove();
       }
     };
+
+    // remove remaining @mqpack queries (no nested @media)
+    css.walkAtRules('mqpack', (atRule) => {
+      unpackRules(atRule);
+    });
 
     // move source-map annotation to the end
     if (sourceMap) {
