@@ -1,3 +1,5 @@
+'use strict';
+
 const list = require("postcss/lib/list");
 const pkg = require("./package.json");
 const postcss = require("postcss");
@@ -133,14 +135,13 @@ const sortQueryLists = (queryLists, sort) => {
     .map(e => queryLists[e.index]);
 };
 
-function unpackRules(parent)
-{
-  parent.each((rule) => {
+const unpackRules = (parent) => {
+  parent.each(rule => {
     rule.moveBefore(parent);
   });
 
   parent.remove();
-}
+};
 
 module.exports = postcss.plugin(pkg.name, options => {
   const opts = {
@@ -148,7 +149,7 @@ module.exports = postcss.plugin(pkg.name, options => {
     ...options
   };
 
-  return function (css) {
+  return css => {
     // get source-map annotation
     let sourceMap = css.last;
 
@@ -163,8 +164,7 @@ module.exports = postcss.plugin(pkg.name, options => {
     css._mqpackerGroupId = _groupId;
 
     // find '@media' rules
-    css.walkAtRules('media', (atRule) => {
-
+    css.walkAtRules('media', atRule => {
       // get '@media' rule's group
       let _searchForGroup = true,
         parent = atRule.parent,
@@ -179,10 +179,12 @@ module.exports = postcss.plugin(pkg.name, options => {
       while (_searchForGroup && parent)
       {
         // if '@media' rule is nested in a '@mqpack' rule
-        if (parent.type == 'atrule' && parent.name == 'mqpack') {
+        if (parent.type == 'atrule' && parent.name == 'mqpack')
+        {
           // set/get parent's mqpacker group id
           parent._mqpackerGroupId = parent._mqpackerGroupId || ++_groupId;
-          // set the '@media' group attributes to represent th '@mqpack' node
+
+          // set the '@media' group attributes to represent the '@mqpack' node
           group = {
             id: parent._mqpackerGroupId,
             node: parent,
@@ -192,12 +194,13 @@ module.exports = postcss.plugin(pkg.name, options => {
           _searchForGroup == false;
         }
 
-        // check next ancestor
+        // check ancestor one level up
         parent = parent.parent;
       }
 
       // register new '@media' query groups
-      if (!groups.hasOwnProperty(group.id)) {
+      if (!groups.hasOwnProperty(group.id))
+      {
         group.queries = {};
         group.queryLists = [];
         groups[group.id] = group;
@@ -209,7 +212,7 @@ module.exports = postcss.plugin(pkg.name, options => {
       // if another '@media' with same params was already found
       if (typeof past === "object") {
         // add rules from this '@media' to the one found before
-        atRule.each((rule) => {
+        atRule.each(rule => {
           past.append(rule.clone());
         });
       } else {
@@ -228,20 +231,14 @@ module.exports = postcss.plugin(pkg.name, options => {
       let group = groups[groupId];      
 
       // sort collected '@media' nodes in group
-      sortQueryLists(group.queryLists, opts.sort).forEach((queryList) => {
+      sortQueryLists(group.queryLists, opts.sort).forEach(queryList => {
         // and add them at the end of the group's node
         group.node.append(group.queries[queryList]);
       });
 
       // replace '@mqpack' nodes with their contents
-      if (group.type == 'mqpack')
-      {
+      if (group.type == 'mqpack') {
         unpackRules(group.node);
-        // group.node.each((rule) => {
-        //   rule.moveBefore(group.node);
-        // });
-
-        // group.node.remove();
       }
     };
 
@@ -259,6 +256,6 @@ module.exports = postcss.plugin(pkg.name, options => {
   };
 });
 
-module.exports.pack = function(css, opts) {
+module.exports.pack = function (css, opts) {
   return postcss([this(opts)]).process(css, opts);
 };
