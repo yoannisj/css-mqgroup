@@ -86,3 +86,18 @@ typings/
 
 # DynamoDB Local files
 .dynamodb/
+
+# Misc files (OS and tools)
+# -------------------------
+.DS_Store
+Thumbs.db
+.project
+.settings
+.tmproj
+*.esproj
+nbproject
+*.sublime-workspace
+*.sublime-project
+*.komodoproject
+.komodotools
+dwsync.xml
