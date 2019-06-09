@@ -1,7 +1,7 @@
-CSS MQPacker
-============
+CSS MqGroup
+===========
 
-Pack same CSS media query rules into one using PostCSS
+Pack same CSS media query rules into one using PostCSS. Forked from [https://github.com/hail2u/node-css-mqgroup](https://github.com/hail2u/node-css-mqgroup).
 
 
 SYNOPSIS
@@ -52,11 +52,105 @@ This PostCSS plugin packs exactly same media queries:
 }
 ```
 
+PACKING IN GROUPS
+-----------------
+
+Additionally, it supports packing groups with the custom `@mqgroup` rule, which give you more control as to which media queries get grouped, and where they appear in the resulting css.
+
+```css
+@mqgroup
+{
+  .foo {
+    width: 240px;
+  }
+
+  @media screen and (min-width: 768px) {
+    .foo {
+      width: 576px;
+    }
+  }
+
+  .bar {
+    width: 160px;
+  }
+
+  @media screen and (min-width: 768px) {
+    .bar {
+      width: 384px;
+    }
+  }
+}
+
+@mqgroup
+{
+  .baz {
+    width: 360px;
+  }
+
+  @media screen and (min-width: 768px) {
+    .baz {
+      width:640px;
+    }
+  }
+
+  .baz--large {
+    width: 420px;
+  }
+
+  @media screen and (min-width: 768px) {
+    .baz--large {
+      width: 780px;
+    }
+  }
+}
+```
+
+This will result in:
+
+```css
+.foo {
+  width: 240px;
+}
+
+.bar {
+  width: 160px;
+}
+
+@media screen and (min-width: 768px)
+{
+  .foo {
+    width: 576px;
+  }
+
+  .bar {
+    width: 384px;
+  }
+}
+
+.baz {
+  width: 360px;
+}
+
+.baz--large {
+  width: 420px;
+}
+
+@media screen and (min-width: 768px)
+{
+  .baz {
+    width: 640px;
+  }
+
+  .baz--large {
+    width: 780px;
+  }
+}
+```
 
 INSTALL
 -------
 
-    $ npm install css-mqpacker
+    $ npm install css-mqgroup
 
 
 USAGE
@@ -74,7 +168,7 @@ const postcss = require("postcss");
 
 postcss([
   require("autoprefixer-core")(),
-  require("css-mqpacker")()
+  require("css-mqgroup")()
 ]).process(fs.readFileSync("from.css", "utf8")).then(function (result) {
   console.log(result.css);
 });
@@ -94,9 +188,9 @@ process its content, and output processed CSS to STDOUT:
 "use strict";
 
 const fs = require("fs");
-const mqpacker = require("css-mqpacker");
+const mqgroup = require("css-mqgroup");
 
-console.log(mqpacker.pack(fs.readFileSync("from.css", "utf8"), {
+console.log(mqgroup.pack(fs.readFileSync("from.css", "utf8"), {
   from: "from.css",
   map: {
     inline: false
@@ -110,8 +204,8 @@ console.log(mqpacker.pack(fs.readFileSync("from.css", "utf8"), {
 
 This package also installs a command line interface.
 
-    $ node ./node_modules/.bin/mqpacker --help
-    Usage: mqpacker [options] INPUT [OUTPUT]
+    $ node ./node_modules/.bin/mqgroup --help
+    Usage: mqgroup [options] INPUT [OUTPUT]
     
     Description:
       Pack same CSS media query rules into one using PostCSS
@@ -125,8 +219,8 @@ This package also installs a command line interface.
     Use a single dash for INPUT to read CSS from standard input.
     
     Examples:
-      $ mqpacker fragmented.css
-      $ mqpacker fragmented.css > packed.css
+      $ mqgroup fragmented.css
+      $ mqgroup fragmented.css > packed.css
 
 When PostCSS failed to parse INPUT, CLI shows a CSS parse error in GNU error
 format instead of Node.js stack trace.
@@ -142,13 +236,13 @@ OPTIONS
 
 ### sort
 
-By default, CSS MQPacker pack and order media queries as they are defined ([the
+By default, CSS mqgroup pack and order media queries as they are defined ([the
 “first win” algorithm][1]). If you want to sort media queries automatically,
 pass `sort: true` to this module.
 
 ```javascript
 postcss([
-  mqpacker({
+  mqgroup({
     sort: true
   })
 ]).process(css);
@@ -160,7 +254,7 @@ your own sorting function and pass it to this module like this:
 
 ```javascript
 postcss([
-  mqpacker({
+  mqgroup({
     sort: function (a, b) {
       return a.localeCompare(b);
     }
@@ -190,9 +284,9 @@ You can specify both at the same time.
 
 ```javascript
 const fs = require("fs");
-const mqpacker = require("css-mqpacker");
+const mqgroup = require("css-mqgroup");
 
-const result = mqpacker.pack(fs.readFileSync("from.css", "utf8"), {
+const result = mqgroup.pack(fs.readFileSync("from.css", "utf8"), {
   from: "from.css",
   map: {
     inline: false
@@ -204,18 +298,17 @@ fs.writeFileSync("to.css", result.css);
 fs.writeFileSync("to.css.map", result.map);
 ```
 
-
 NOTES
 -----
 
-With CSS MQPacker, the processed CSS is always valid CSS, but you and your
-website user will get unexpected results. This section explains how CSS MQPacker
+With CSS mqgroup, the processed CSS is always valid CSS, but you and your
+website user will get unexpected results. This section explains how CSS mqgroup
 works and what you should keep in mind.
 
 
 ### CSS Cascading Order
 
-CSS MQPacker changes rulesets’ order. This means the processed CSS will have an
+CSS mqgroup changes rulesets’ order. This means the processed CSS will have an
 unexpected cascading order. For example:
 
 ```css
@@ -256,7 +349,7 @@ then concatenate with a CSS framework.
 
 ### The “First Win” Algorithm
 
-CSS MQPacker is implemented with the “first win” algorithm. This means:
+CSS mqgroup is implemented with the “first win” algorithm. This means:
 
 ```css
 .foo {
@@ -328,7 +421,7 @@ If you use simple `min-width` queries only, [the `sort` option][4] can help.
 
 ### Multiple Classes
 
-CSS MQPacker works only with CSS. This may break CSS applying order to an
+CSS MqGroup works only with CSS. This may break CSS applying order to an
 elements that have multiple classes. For example:
 
 ```css
@@ -372,8 +465,7 @@ Becomes:
 
 The result looks good. However, if an HTML element has `class="bar baz"` and
 viewport width larger than `640px`, that element `width` incorrectly set to
-`200px` instead of `300px`. This problem cannot be resolved only with CSS, so be
-careful!
+`200px` instead of `300px`. This problem cannot be resolved only with CSS, so be careful!
 
 
 LICENSE

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const mqpacker = require("../index");
+const mqgroup = require("../index");
 const fs = require("fs");
 const minimist = require("minimist");
 const pkg = require("../package.json");
@@ -37,11 +37,11 @@ Use a single dash for INPUT to read CSS from standard input.
 
 Examples:
   $ ${binname} fragmented.css
-  $ ${binname} fragmented.css > packed.css`);
+  $ ${binname} fragmented.css > grouped.css`);
 };
 
 const pack = (s, o) => {
-  mqpacker
+  mqgroup
     .pack(s, o)
     .then(result => {
       if (!o.to) {

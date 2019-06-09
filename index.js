@@ -143,7 +143,7 @@ const unpackRules = (parent) => {
 };
 
 const isGroupNode = (node) => {
-  return node.type == 'root' || (node.type == 'atrule' && node.name == 'mqpack');
+  return node.type == 'root' || (node.type == 'atrule' && node.name == 'mqgroup');
 }
 
 const isNestedMedia = (node) => {
@@ -182,8 +182,8 @@ module.exports = postcss.plugin(pkg.name, options => {
     const groups = {};
     let _groupId = 1;
 
-    // give root node an mqpacker group id
-    css._mqpackerGroupId = _groupId;
+    // give root node an mqgrouper group id
+    css._mqgrouperGroupId = _groupId;
 
     // place root group at the begining
     groups[_groupId] = {
@@ -213,17 +213,17 @@ module.exports = postcss.plugin(pkg.name, options => {
       {
         distance++;
 
-        // if parent is a '@mqpack' node or 'root'
+        // if parent is a '@mqgroup' node or 'root'
         if (isGroupNode(parent))
         {
           if (!group)
           {
-            // set/get parent's mqpacker group id
-            parent._mqpackerGroupId = parent._mqpackerGroupId || ++_groupId;
+            // set/get parent's mqgrouper group id
+            parent._mqgrouperGroupId = parent._mqgrouperGroupId || ++_groupId;
 
             // initiliaze object representing the group
             group = {
-              id: parent._mqpackerGroupId,
+              id: parent._mqgrouperGroupId,
               node: parent,
               type: parent.type
             };
@@ -262,7 +262,7 @@ module.exports = postcss.plugin(pkg.name, options => {
       }
 
       if (!group) {
-        group = groups[css._mqpackerGroupId];
+        group = groups[css._mqgrouperGroupId];
       }
 
       // register new '@media' query groups
@@ -303,14 +303,14 @@ module.exports = postcss.plugin(pkg.name, options => {
         group.node.append(group.queries[queryList]);
       });
 
-      // replace '@mqpack' nodes with their contents
+      // replace '@mqgroup' nodes with their contents
       if (group.type == 'atrule') {
         unpackRules(group.node);
       }
     };
 
-    // remove remaining @mqpack queries (no nested @media)
-    css.walkAtRules('mqpack', (atRule) => {
+    // remove remaining @mqgroup queries (no nested @media)
+    css.walkAtRules('mqgroup', (atRule) => {
       unpackRules(atRule);
     });
 
