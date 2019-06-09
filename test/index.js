@@ -118,9 +118,12 @@ exports["Real CSS"] = test => {
       opts.sort = true;
     }
 
+    let inputStr = mqpacker.pack(readInput(testCase), opts).css.replace(/\s+/g, '');
+    let expectStr = readExpected(testCase).replace(/\s+/g, '');
+
     test.strictEqual(
-      mqpacker.pack(readInput(testCase), opts).css,
-      readExpected(testCase),
+      inputStr,
+      expectStr,
       testCase
     );
   });

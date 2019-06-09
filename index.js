@@ -137,11 +137,33 @@ const sortQueryLists = (queryLists, sort) => {
 
 const unpackRules = (parent) => {
   parent.each(rule => {
-    rule.moveBefore(parent);
+    parent.parent.insertBefore(parent, rule)
   });
-
   parent.remove();
 };
+
+const isGroupNode = (node) => {
+  return node.type == 'root' || (node.type == 'atrule' && node.name == 'mqpack');
+}
+
+const isNestedMedia = (node) => {
+  if (node.type != 'atrule' || atRule.name != 'media') {
+    return false;
+  }
+
+  let parent = node.parent;
+
+  while (parent)
+  {
+    if (parent.type == 'atrule' && parent.name == 'media') {
+      return true;
+    }
+
+    parent = parent.parent;
+  }
+
+  return false;
+}
 
 module.exports = postcss.plugin(pkg.name, options => {
   const opts = {
@@ -158,44 +180,89 @@ module.exports = postcss.plugin(pkg.name, options => {
     }
 
     const groups = {};
-    let _groupId = 0;
+    let _groupId = 1;
 
     // give root node an mqpacker group id
     css._mqpackerGroupId = _groupId;
 
+    // place root group at the begining
+    groups[_groupId] = {
+      id: _groupId,
+      node: css,
+      type: 'root',
+      queries: {},
+      queryLists: []
+    };
+
     // find '@media' rules
     css.walkAtRules('media', atRule => {
+      // if (atRule.parent.parent && !isGroupNode(atRule.parent) && !isGroupNode(atRule.parent.parent)) {
+      //   return;
+      // }
+
       // get '@media' rule's group
-      let _searchForGroup = true,
-        parent = atRule.parent,
-        // default to root group
-        group = {
-          id: 0,
-          type: 'root',
-          node: css
-        };
+      let parent = atRule.parent;
+      let group;
+      let distance = 0;
 
-      // search for '@mqpack' rule in ancestors
-      while (_searchForGroup && parent)
+      // if in group -> up to 3 levels
+      // else -> up to 2 levels
+
+      // search for parent group, and handle nested @media rules
+      while (parent)
       {
-        // if '@media' rule is nested in a '@mqpack' rule
-        if (parent.type == 'atrule' && parent.name == 'mqpack')
+        distance++;
+
+        // if parent is a '@mqpack' node or 'root'
+        if (isGroupNode(parent))
         {
-          // set/get parent's mqpacker group id
-          parent._mqpackerGroupId = parent._mqpackerGroupId || ++_groupId;
+          if (!group)
+          {
+            // set/get parent's mqpacker group id
+            parent._mqpackerGroupId = parent._mqpackerGroupId || ++_groupId;
 
-          // set the '@media' group attributes to represent the '@mqpack' node
-          group = {
-            id: parent._mqpackerGroupId,
-            node: parent,
-            type: 'mqpack'
-          };
+            // initiliaze object representing the group
+            group = {
+              id: parent._mqpackerGroupId,
+              node: parent,
+              type: parent.type
+            };
+          }
 
-          _searchForGroup == false;
+          else if (parent.type != 'root') {
+            // throw nested groups error
+            throw parent.error('nested `@mqgroup` rules are not supported');
+          }
         }
 
-        // check ancestor one level up
+        // wrap media query contents in other parent rules
+        else if (distance === 1 && parent.type == 'atrule' && parent.name != 'media')
+        {
+          // - move @media child nodes to wrapper atrule (reproduces parent atruel)
+          let wrapRule = postcss.atRule({
+            name: parent.name,
+            params: parent.params
+          });
+
+          atRule.each(node => {
+            wrapRule.append(node);
+          });
+
+          // - add wrapper atrule as unique child to @media rule
+          // atRule.remove();
+          atRule.removeAll();
+          atRule.append(wrapRule);
+        }
+
+        else {
+          return;
+        }
+
         parent = parent.parent;
+      }
+
+      if (!group) {
+        group = groups[css._mqpackerGroupId];
       }
 
       // register new '@media' query groups
@@ -225,10 +292,10 @@ module.exports = postcss.plugin(pkg.name, options => {
       atRule.remove();
     });
 
-    // re-inject '@media' nodes in-place
+    // re-inject '@media' nodes, sorted and at the end of groups
     for (var groupId in groups)
     {
-      let group = groups[groupId];      
+      let group = groups[groupId];
 
       // sort collected '@media' nodes in group
       sortQueryLists(group.queryLists, opts.sort).forEach(queryList => {
@@ -237,7 +304,7 @@ module.exports = postcss.plugin(pkg.name, options => {
       });
 
       // replace '@mqpack' nodes with their contents
-      if (group.type == 'mqpack') {
+      if (group.type == 'atrule') {
         unpackRules(group.node);
       }
     };
@@ -251,6 +318,7 @@ module.exports = postcss.plugin(pkg.name, options => {
     if (sourceMap) {
       css.append(sourceMap);
     }
+
     // return resulting css tree
     return css;
   };

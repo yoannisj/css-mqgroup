@@ -1,0 +1,39 @@
+.foo {
+  z-index: 1;
+}
+
+@mqpack
+{
+  @media (min-width: 1024px) {
+    .foo {
+      z-index: 2;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .bar {
+      z-index: 3;
+    }
+  }
+}
+
+.bar {
+  z-index: 2;
+}
+
+@mqpack
+{
+  @media (min-width: 1024px)
+  {
+    .foo {
+      z-index: 4;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .bar {
+      z-index: 5;
+    }
+  }
+
+}
